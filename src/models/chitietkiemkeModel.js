@@ -1,7 +1,6 @@
 const db = require('../configs/db');
 
 const chitietkiemkeModel = {
-    // Lấy chi tiết của 1 phiếu kiểm kê cụ thể (JOIN thêm lothuoc để lấy số lô hiển thị cho đẹp)
     getByPhieuId: async (maphieu) => {
         const sql = `SELECT ct.*, l.solo, l.tonthucte AS ton_he_thong
                  FROM chitietkiemke ct
@@ -10,22 +9,31 @@ const chitietkiemkeModel = {
         const [rows] = await db.query(sql, [maphieu]);
         return rows;
     },
+    
     create: async (data) => {
-        const { maphieu, malo, soluong_tru, lydo } = data;
-        const sql = `INSERT INTO chitietkiemke (maphieu, malo, soluong_tru, lydo) VALUES (?, ?, ?, ?)`;
-        const [result] = await db.query(sql, [maphieu, malo, soluong_tru, lydo]);
+        const { maphieu, malo, lydo } = data;
+        // Tương thích ngược: Nếu Frontend vẫn gửi 'soluong_tru', tự ép sang 'soluong_lech'
+        const lech = data.soluong_lech !== undefined ? data.soluong_lech : data.soluong_tru;
+        
+        const sql = `INSERT INTO chitietkiemke (maphieu, malo, soluong_lech, lydo) VALUES (?, ?, ?, ?)`;
+        const [result] = await db.query(sql, [maphieu, malo, lech || 0, lydo]);
         return result;
     },
+    
     update: async (id, data) => {
-        const { malo, soluong_tru, lydo } = data;
-        const sql = `UPDATE chitietkiemke SET malo = ?, soluong_tru = ?, lydo = ? WHERE id = ?`;
-        const [result] = await db.query(sql, [malo, soluong_tru, lydo, id]);
+        const { malo, lydo } = data;
+        const lech = data.soluong_lech !== undefined ? data.soluong_lech : data.soluong_tru;
+
+        const sql = `UPDATE chitietkiemke SET malo = ?, soluong_lech = ?, lydo = ? WHERE id = ?`;
+        const [result] = await db.query(sql, [malo, lech || 0, lydo, id]);
         return result;
     },
+    
     delete: async (id) => {
         const sql = 'DELETE FROM chitietkiemke WHERE id = ?';
         const [result] = await db.query(sql, [id]);
         return result;
     }
 };
+
 module.exports = chitietkiemkeModel;

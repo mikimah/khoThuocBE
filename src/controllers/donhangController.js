@@ -64,12 +64,12 @@ const donhangController = {
    // Tra cứu đơn hàng công khai
     traCuuCongKhai: async (req, res, next) => {
         try {
-            const { sodienthoai, mavandon3pl } = req.body || {};
-            if (!sodienthoai && !mavandon3pl) {
-                return response.badRequest(res, 'Thiếu số điện thoại hoặc mã vận đơn');
+            const {  mavandon3pl } = req.body || {};
+            if (!mavandon3pl) {
+                return response.badRequest(res, 'Thiếu mã vận đơn');
             }
 
-            const masterRows = await donhangModel.getPublicByTrackingOrPhone(mavandon3pl, sodienthoai);
+            const masterRows = await donhangModel.getPublicByTrackingOrPhone(mavandon3pl);
             if (masterRows.length === 0) {
                 return response.notFound(res, 'Không tìm thấy đơn hàng hoặc số điện thoại/mã vận đơn không chính xác');
             }

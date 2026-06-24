@@ -4,7 +4,7 @@ const response = require('../utils/response');
 const attachHttpMeta = (error) => {
     if (error && error.code === 'ER_DUP_ENTRY') {
         error.statusCode = 409;
-        error.message = 'Vị trí kho đã tồn tại';
+        error.message = 'Mã tọa độ vị trí kho này đã tồn tại';
     }
     return error;
 };
@@ -18,6 +18,7 @@ const vitrikhoController = {
             return next(attachHttpMeta(error));
         }
     },
+
     getById: async (req, res, next) => {
         try {
             const data = await vitrikhoModel.getById(req.params.id);
@@ -27,42 +28,46 @@ const vitrikhoController = {
             return next(attachHttpMeta(error));
         }
     },
+
     create: async (req, res, next) => {
         try {
-            const { mavitri, makhuvuc, day, ke, tang } = req.body;
+            const { ma_toado, ten_vitri, loai_baoquan } = req.body;
 
-            if (!mavitri || !makhuvuc || day == null || ke == null || tang == null) {
-                return response.badRequest(res, 'Thiếu dữ liệu bắt buộc: mavitri, makhuvuc, day, ke, tang');
+            if (!ma_toado || !ten_vitri) {
+                return response.badRequest(res, 'Thiếu dữ liệu bắt buộc: ma_toado và ten_vitri không được để trống');
             }
 
-            await vitrikhoModel.create(req.body);
-            return response.created(res, { mavitri }, 'Thêm vị trí thành công');
+            const result = await vitrikhoModel.create(req.body);
+            return response.created(res, { mavitri: result.insertId }, 'Thêm vị trí kho mới thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
         }
     },
+
     update: async (req, res, next) => {
         try {
-            const { makhuvuc, day, ke, tang } = req.body;
-            if (!makhuvuc || day == null || ke == null || tang == null) {
-                return response.badRequest(res, 'Thiếu dữ liệu cập nhật: makhuvuc, day, ke, tang');
+            const { ma_toado, ten_vitri, loai_baoquan } = req.body;
+            if (!ma_toado || !ten_vitri || !loai_baoquan) {
+                return response.badRequest(res, 'Thiếu dữ liệu cập nhật: ma_toado, ten_vitri, loai_baoquan');
             }
 
             const result = await vitrikhoModel.update(req.params.id, req.body);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy vị trí kho');
-            return response.ok(res, null, 'Cập nhật thành công');
+            return response.ok(res, null, 'Cập nhật thông tin vị trí kho thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
         }
     },
+
     delete: async (req, res, next) => {
         try {
             const result = await vitrikhoModel.delete(req.params.id);
-            if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy vị trí kho');
-            return response.ok(res, null, 'Xóa thành công');
+            if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy vị trí kho để xóa');
+            return response.ok(res, null, 'Xóa vị trí kho thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
         }
     }
 };
+
 module.exports = vitrikhoController;

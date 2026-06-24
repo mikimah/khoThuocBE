@@ -22,32 +22,42 @@ const ThuocModel = {
             sql += ' AND mathuoc != ?';
             params.push(excludeId);
         }
-        sql += ' LIMIT 1'; // Tối ưu: Tìm thấy 1 dòng là dừng
+        sql += ' LIMIT 1'; 
 
         const [rows] = await db.query(sql, params);
-        return rows.length > 0; // Trả về true nếu đã tồn tại
+        return rows.length > 0; 
     },
 
     create: async (data) => {
-        const { tenthuoc, sodangky, dieukienbaoquan, mota, donvicoban, trangthai } = data;
-        const sql = `INSERT INTO thuoc (tenthuoc, sodangky, dieukienbaoquan, mota, donvicoban, trangthai) 
-                     VALUES (?, ?, ?, ?, ?, ?)`;
-        const [result] = await db.query(sql, [tenthuoc, sodangky, dieukienbaoquan, mota, donvicoban, trangthai]);
+        // ĐÃ BỔ SUNG: loai_baoquan
+        const { tenthuoc, sodangky, dieukienbaoquan, loai_baoquan, mota, donvicoban, trangthai } = data;
+        const sql = `INSERT INTO thuoc (tenthuoc, sodangky, dieukienbaoquan, loai_baoquan, mota, donvicoban, trangthai) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        const [result] = await db.query(sql, [
+            tenthuoc, 
+            sodangky, 
+            dieukienbaoquan, 
+            loai_baoquan || 'THUONG', // Mặc định là THUONG nếu frontend không gửi
+            mota, 
+            donvicoban, 
+            trangthai
+        ]);
         return result;
     },
 
     update: async (id, data) => {
-        const { tenthuoc, sodangky, dieukienbaoquan, mota, donvicoban, trangthai } = data;
+        // ĐÃ BỔ SUNG: loai_baoquan
+        const { tenthuoc, sodangky, dieukienbaoquan, loai_baoquan, mota, donvicoban, trangthai } = data;
         const sql = `UPDATE thuoc 
-                     SET tenthuoc = ?, sodangky = ?, dieukienbaoquan = ?, mota = ?, donvicoban = ?, trangthai = ? 
+                     SET tenthuoc = ?, sodangky = ?, dieukienbaoquan = ?, loai_baoquan = ?, mota = ?, donvicoban = ?, trangthai = ? 
                      WHERE mathuoc = ?`;
-        const [result] = await db.query(sql, [tenthuoc, sodangky, dieukienbaoquan, mota, donvicoban, trangthai, id]);
+        const [result] = await db.query(sql, [tenthuoc, sodangky, dieukienbaoquan, loai_baoquan, mota, donvicoban, trangthai, id]);
         return result;
     },
 
-    // Cập nhật trạng thái thuốc và khóa toàn bộ lô nếu ngừng kinh doanh
     updateStatusWithLock: async (id, data) => {
-        const { tenthuoc, sodangky, dieukienbaoquan, mota, donvicoban, trangthai } = data;
+        // ĐÃ BỔ SUNG: loai_baoquan
+        const { tenthuoc, sodangky, dieukienbaoquan, loai_baoquan, mota, donvicoban, trangthai } = data;
         const connection = await db.getConnection();
 
         try {
@@ -55,15 +65,14 @@ const ThuocModel = {
 
             const [result] = await connection.query(
                 `UPDATE thuoc
-                 SET tenthuoc = ?, sodangky = ?, dieukienbaoquan = ?, mota = ?, donvicoban = ?, trangthai = ?
+                 SET tenthuoc = ?, sodangky = ?, dieukienbaoquan = ?, loai_baoquan = ?, mota = ?, donvicoban = ?, trangthai = ?
                  WHERE mathuoc = ?`,
-                [tenthuoc, sodangky, dieukienbaoquan, mota, donvicoban, trangthai, id]
+                [tenthuoc, sodangky, dieukienbaoquan, loai_baoquan, mota, donvicoban, trangthai, id]
             );
 
+            // Khi ngừng kinh doanh thuốc -> Khóa toàn bộ lô
             await connection.query(
-                `UPDATE lothuoc
-                 SET trangthai = 'khoalo'
-                 WHERE mathuoc = ?`,
+                `UPDATE lothuoc SET trangthai = 'khoalo' WHERE mathuoc = ?`,
                 [id]
             );
 

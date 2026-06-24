@@ -22,8 +22,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-
-
 // Tuyến đường (Route) chạy thử
 app.get('/', (req, res) => {
     res.send("Backend Kho Thuốc đã sẵn sàng chiến đấu!");

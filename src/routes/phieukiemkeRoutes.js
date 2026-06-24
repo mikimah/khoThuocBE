@@ -5,9 +5,9 @@ const auth = require('../middlewares/authMiddleware');
 
 router.use('/phieukiemke', auth.verifyToken);
 
-router.get('/phieukiemke', auth.allowRoles('admin', 'nhanvien'), phieukiemkeController.getAll);
-router.get('/phieukiemke/:maphieu', auth.allowRoles('admin', 'nhanvien'), phieukiemkeController.getById);
-router.post('/phieukiemke', auth.allowRoles('admin', 'nhanvien'), phieukiemkeController.create);
+router.get('/phieukiemke', auth.allowRoles('admin', 'kho'), phieukiemkeController.getAll);
+router.get('/phieukiemke/:maphieu', auth.allowRoles('admin', 'kho'), phieukiemkeController.getById);
+router.post('/phieukiemke', auth.allowRoles('admin', 'kho'), phieukiemkeController.create);
 router.put('/phieukiemke/:maphieu/trangthai', auth.allowRoles('admin'), phieukiemkeController.updateTrangThai);
 router.delete('/phieukiemke/:maphieu', auth.allowRoles('admin'), phieukiemkeController.delete);
 

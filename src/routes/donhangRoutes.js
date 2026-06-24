@@ -9,26 +9,16 @@ router.post('/donhang/tracuu-congkhai', donhangController.traCuuCongKhai);
 router.use('/donhang', auth.verifyToken);
 
 // Lấy danh sách tổng
-router.get('/donhang', auth.allowRoles('admin', 'nhanvien'), donhangController.getAllDonHang);
+router.get('/donhang', auth.allowRoles('admin', 'kho', 'sales'), donhangController.getAllDonHang);
 
 // Lọc đơn hàng Nhập / Xuất (Bắt buộc phải để trước dòng /:id)
-// Test thử: GET /api/donhang/loai/Nhap
-router.get('/donhang/loai/:loaidonhang', auth.allowRoles('admin', 'nhanvien'), donhangController.getDonHangByLoai);
+router.get('/donhang/loai/:loaidonhang', auth.allowRoles('admin', 'kho', 'sales'), donhangController.getDonHangByLoai);
 
 // Lấy chi tiết theo ID
-router.get('/donhang/:id', auth.allowRoles('admin', 'nhanvien'), donhangController.getDonHangById);
-
-// Tạo mới
-router.post('/donhang', auth.allowRoles('admin', 'nhanvien'), donhangController.createDonHang);
-
-// Cập nhật TRẠNG THÁI đơn hàng (API chuyên dụng)
-// Test: PUT /api/donhang/1/trangthai với body JSON: { "trangthai": "daduyet" }
+router.get('/donhang/:id', auth.allowRoles('admin', 'kho', 'sales'), donhangController.getDonHangById);
+router.post('/donhang', auth.allowRoles('admin', 'kho', 'sales'), donhangController.createDonHang);
 router.put('/donhang/:id/trangthai', auth.allowRoles('admin'), donhangController.updateTrangThai);
-
-// Cập nhật thông tin chung
-router.put('/donhang/:id', auth.allowRoles('admin', 'nhanvien'), donhangController.updateDonHang);
-
-// Xóa đơn hàng
+router.put('/donhang/:id', auth.allowRoles('admin', 'kho', 'sales'), donhangController.updateDonHang);
 router.delete('/donhang/:id', auth.allowRoles('admin'), donhangController.deleteDonHang);
 
 module.exports = router;

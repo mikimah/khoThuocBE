@@ -7,7 +7,8 @@ const LoThuocModel = {
         const sql = `SELECT l.*, t.tenthuoc,
                         (SELECT ct.dongia FROM chitietdonhang ct
                          JOIN donhang dh ON ct.madonhang = dh.madonhang
-                         WHERE ct.malo = l.malo AND dh.loaidonhang = 'nhap'
+                         WHERE (ct.malo = l.malo OR (ct.mathuoc = l.mathuoc AND ct.solo_tam = l.solo))
+                           AND dh.loaidonhang = 'nhap'
                          ORDER BY dh.ngaytao DESC LIMIT 1) AS gianhapgannhat
                      FROM lothuoc l
                      JOIN thuoc t ON l.mathuoc = t.mathuoc
@@ -22,7 +23,8 @@ const LoThuocModel = {
             SELECT l.*, 
             (SELECT ct.dongia FROM chitietdonhang ct 
              JOIN donhang dh ON ct.madonhang = dh.madonhang 
-             WHERE ct.malo = l.malo AND dh.loaidonhang = 'nhap' 
+             WHERE (ct.malo = l.malo OR (ct.mathuoc = l.mathuoc AND ct.solo_tam = l.solo))
+               AND dh.loaidonhang = 'nhap' 
              ORDER BY dh.ngaytao DESC LIMIT 1) AS gianhapgannhat
             FROM lothuoc l 
             WHERE l.mathuoc = ? AND l.tonkhadung > 0 

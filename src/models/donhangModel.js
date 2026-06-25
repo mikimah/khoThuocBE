@@ -73,8 +73,7 @@ const donhangModel = {
             await connection.beginTransaction();
 
             // 1. Lấy trạng thái hiện tại của đơn hàng
-            const [dhRows] = await connection.query('SELECT loaidonhang, trangthai FROM donhang WHERE madonhang = ?', [id]);
-            if (dhRows.length === 0) throw new Error('Không tìm thấy đơn hàng');
+            const [dhRows] = await connection.query('SELECT loaidonhang, trangthai, ngaytao FROM donhang WHERE madonhang = ?', [id]);            if (dhRows.length === 0) throw new Error('Không tìm thấy đơn hàng');
             const donHang = dhRows[0];
 
             // KỊCH BẢN 1: DUYỆT ĐƠN XUẤT HÀNG -> Trừ trực tiếp vào lô được chọn trên đơn
@@ -107,6 +106,14 @@ const donhangModel = {
                         `UPDATE lothuoc SET tonthucte = tonthucte - ? WHERE malo = ?`,
                         [soLuongTruVatLy, item.malo]
                     );
+                    
+                }
+                const congNoTangThem = Number(donHang.tonggiatri || 0) - Number(donHang.tiendathanhtoan || 0);
+                if (congNoTangThem > 0) {
+                    await connection.query(
+                        `UPDATE doitac SET tongnohientai = tongnohientai + ? WHERE madoitac = ?`,
+                        [congNoTangThem, donHang.madoitac]
+                    );
                 }
             }
 
@@ -122,6 +129,69 @@ const donhangModel = {
                         await connection.query(
                             `UPDATE lothuoc SET tonkhadung = tonkhadung + ? WHERE malo = ?`,
                             [soLuongQuyDoi, item.malo]
+                        );
+                    }
+                }
+            }
+
+           // 🔥 BỔ SUNG HÀM AN TOÀN TRỰC TIẾP TRONG SCOPE NÀY ĐỂ TRÁNH CRASH
+            const safeFormatDate = (val) => {
+                if (!val) return null;
+                const d = new Date(val);
+                if (isNaN(d.getTime())) return null; // Chặn đứng lỗi Invalid time value
+                
+                // Trích xuất ngày theo múi giờ nội bộ (Không bị lùi ngày như toISOString)
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            // 🔥 KỊCH BẢN 3: DUYỆT PHIẾU NHẬP -> Bốc lô tạm đẩy vào bảng lothuoc chính thức
+            if (donHang.loaidonhang === 'nhap' && trangthai === 'daduyet' && donHang.trangthai === 'choduyet') {
+                const [chiTietNhap] = await connection.query(
+                    `SELECT mathuoc, solo_tam, ngaysanxuat_tam, hansudung_tam, soluongthucte, madonvitinh 
+                     FROM chitietdonhang WHERE madonhang = ?`, 
+                    [id]
+                );
+
+                // Dùng hàm an toàn để parse ngày, loại bỏ hoàn toàn khả năng crash
+                const ngayNhapChuan = safeFormatDate(donHang.ngaytao);
+
+                for (const item of chiTietNhap) {
+                    const [donViRows] = await connection.query('SELECT hesoquydoi FROM donvitinh WHERE madonvitinh = ? LIMIT 1', [item.madonvitinh]);
+                    const heSoQuyDoi = Number(donViRows[0]?.hesoquydoi || 1);
+                    const soLuongNhapVatLy = Number(item.soluongthucte || 0) * heSoQuyDoi;
+
+                    // Dùng hàm an toàn để parse ngày SX và HSD
+                    const ngaySanXuatChuan = safeFormatDate(item.ngaysanxuat_tam);
+                    const hanSuDungChuan = safeFormatDate(item.hansudung_tam);
+
+                    const [loRows] = await connection.query(
+                        'SELECT malo FROM lothuoc WHERE mathuoc = ? AND solo = ? LIMIT 1', 
+                        [item.mathuoc, item.solo_tam]
+                    );
+
+                    if (loRows.length > 0) {
+                        await connection.query(
+                            `UPDATE lothuoc 
+                             SET tonthucte = tonthucte + ?, tonkhadung = tonkhadung + ?, ngaynhap = ? 
+                             WHERE malo = ?`,
+                            [soLuongNhapVatLy, soLuongNhapVatLy, ngayNhapChuan, loRows[0].malo]
+                        );
+                    } else {
+                        await connection.query(
+                            `INSERT INTO lothuoc (solo, mathuoc, tonthucte, tonkhadung, hansudung, ngaysanxuat, ngaynhap, mavitri, trangthai)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'biettru')`,
+                            [
+                                item.solo_tam, 
+                                item.mathuoc, 
+                                soLuongNhapVatLy, 
+                                soLuongNhapVatLy, 
+                                hanSuDungChuan, 
+                                ngaySanXuatChuan, 
+                                ngayNhapChuan
+                            ]
                         );
                     }
                 }

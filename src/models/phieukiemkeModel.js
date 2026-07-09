@@ -16,7 +16,7 @@ const phieukiemkeModel = {
     create: async (data) => {
         const { maphieu, ngaykiemke, nguoitao, trangthai } = data;
         const sql = `INSERT INTO phieukiemke (maphieu, ngaykiemke, nguoitao, trangthai) VALUES (?, ?, ?, ?)`;
-        const [result] = await db.query(sql, [maphieu, ngaykiemke || new Date(), nguoitao, trangthai || 'dangkhiemke']);
+        const [result] = await db.query(sql, [maphieu, ngaykiemke || new Date(), nguoitao, trangthai || 'dangkiemke']);
         return result;
     },
     

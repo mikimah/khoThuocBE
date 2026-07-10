@@ -31,17 +31,20 @@ const chitietdonhangModel = {
             soluongthucte,
             dongia,
             phantramchietkhau,
+            tylechietchkhau,
+            tienchietchkhau,
             solo_tam,
             ngaysanxuat_tam,
             hansudung_tam
         } = data;
         const sql = `INSERT INTO chitietdonhang 
-                    (madonhang, mathuoc, malo, madonvitinh, soluongyeucau, soluongthucte, dongia, phantramchietkhau, solo_tam, ngaysanxuat_tam, hansudung_tam) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    (madonhang, mathuoc, malo, madonvitinh, soluongyeucau, soluongthucte, dongia, phantramchietkhau, tylechietchkhau, tienchietchkhau, solo_tam, ngaysanxuat_tam, hansudung_tam) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         const [result] = await db.query(sql, [
             madonhang, mathuoc, malo || null, madonvitinh, 
-            soluongyeucau, soluongthucte || 0, // Mặc định số thực tế ban đầu = 0
+            soluongyeucau, soluongthucte || 0,
             dongia || 0, phantramchietkhau || 0,
+            tylechietchkhau || 0, tienchietchkhau || 0,
             solo_tam || null, ngaysanxuat_tam || null, hansudung_tam || null
         ]);
         return result;
@@ -165,12 +168,13 @@ const chitietdonhangModel = {
 
             const [result] = await connection.query(
                 `INSERT INTO chitietdonhang 
-                (madonhang, mathuoc, malo, madonvitinh, soluongyeucau, soluongthucte, dongia, phantramchietkhau, solo_tam, ngaysanxuat_tam, hansudung_tam) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (madonhang, mathuoc, malo, madonvitinh, soluongyeucau, soluongthucte, dongia, phantramchietkhau, tylechietchkhau, tienchietchkhau, solo_tam, ngaysanxuat_tam, hansudung_tam) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     madonhang, mathuoc, resolvedMalo, madonvitinh,
                     soluongyeucau, soluongthucte || 0,
                     dongia || 0, phantramchietkhau || 0,
+                    data.tylechietchkhau || 0, data.tienchietchkhau || 0,
                     loaidonhang === 'nhap' ? soloTam : null,
                     loaidonhang === 'nhap' ? ngaySanXuatTam : null,
                     loaidonhang === 'nhap' ? hanSuDungTam : null

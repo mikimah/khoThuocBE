@@ -20,6 +20,18 @@ const donhangController = {
         }
     },
 
+    // Lấy đơn của chính mình (theo mataikhoan từ token)
+    getDonHangCuaToi: async (req, res, next) => {
+        try {
+            const mataikhoan = req.user?.id;
+            if (!mataikhoan) return response.unauthorized(res, 'Không xác thực được tài khoản');
+            const data = await donhangModel.getByTaiKhoan(mataikhoan);
+            return response.ok(res, data, 'Lấy lịch sử đơn hàng thành công');
+        } catch (error) {
+            return next(attachHttpMeta(error));
+        }
+    },
+
     // Lấy 1 đơn
     getDonHangById: async (req, res, next) => {
         try {

@@ -55,6 +55,17 @@ const donhangModel = {
         return rows;
     },
 
+    getByTaiKhoan: async (mataikhoan) => {
+        const sql = `SELECT dh.*, dt.tendoitac, tk.tendangnhap 
+                     FROM donhang dh 
+                     LEFT JOIN doitac dt ON dh.madoitac = dt.madoitac 
+                     LEFT JOIN taikhoan tk ON dh.mataikhoan = tk.mataikhoan
+                     WHERE dh.mataikhoan = ?
+                     ORDER BY dh.ngaytao DESC`;
+        const [rows] = await db.query(sql, [mataikhoan]);
+        return rows;
+    },
+
     create: async (data) => {
         const { madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl, tonggiatri, tienchietkhau, tiendathanhtoan } = data;
         const sql = `INSERT INTO donhang (madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl, trangthai, tonggiatri, tienchietkhau, tiendathanhtoan) 
@@ -73,7 +84,11 @@ const donhangModel = {
             await connection.beginTransaction();
 
             // 1. Lấy trạng thái hiện tại của đơn hàng
-            const [dhRows] = await connection.query('SELECT loaidonhang, trangthai, ngaytao FROM donhang WHERE madonhang = ?', [id]);            if (dhRows.length === 0) throw new Error('Không tìm thấy đơn hàng');
+            const [dhRows] = await connection.query(
+                'SELECT loaidonhang, trangthai, ngaytao, madoitac, tonggiatri, tiendathanhtoan FROM donhang WHERE madonhang = ?',
+                [id]
+            );
+            if (dhRows.length === 0) throw new Error('Không tìm thấy đơn hàng');
             const donHang = dhRows[0];
 
             // KỊCH BẢN 1: DUYỆT ĐƠN XUẤT HÀNG -> Trừ trực tiếp vào lô được chọn trên đơn

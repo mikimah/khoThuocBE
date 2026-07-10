@@ -11,6 +11,9 @@ router.use('/donhang', auth.verifyToken);
 // Lấy danh sách tổng
 router.get('/donhang', auth.allowRoles('admin', 'kho', 'sales'), donhangController.getAllDonHang);
 
+// Lấy đơn của chính mình (Sales/Kho)
+router.get('/donhang/cua-toi', auth.allowRoles('kho', 'sales'), donhangController.getDonHangCuaToi);
+
 // Lọc đơn hàng Nhập / Xuất (Bắt buộc phải để trước dòng /:id)
 router.get('/donhang/loai/:loaidonhang', auth.allowRoles('admin', 'kho', 'sales'), donhangController.getDonHangByLoai);
 

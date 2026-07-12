@@ -1,105 +1,104 @@
 const db = require('../configs/db');
 
 const thongkeModel = {
-    getTongQuan: async (tuNgay, denNgay) => {
-        const [doanhThuRows] = await db.query(
-            `SELECT SUM(tonggiatri) AS doanhthu, COUNT(madonhang) AS sodonhang
-             FROM donhang
-             WHERE loaidonhang = 'xuat'
-               AND trangthai IN ('daduyet', 'hoanthanh')
-               AND ngaytao BETWEEN ? AND ?`,
-            [tuNgay, denNgay]
-        );
+    getTongQuan: async (tuNgay, denNgay, madoitac = null, mathuoc = null) => {
+        let params = [tuNgay, denNgay];
+        let filterSql = "";
 
-        const [vonRows] = await db.query(
-          `SELECT SUM(ct.soluongthucte * COALESCE(dv.hesoquydoi, 1) * COALESCE(gia.gianhapgannhat, 0)) AS tongvon
-           FROM donhang dh
-           JOIN chitietdonhang ct ON dh.madonhang = ct.madonhang
-           LEFT JOIN donvitinh dv ON ct.madonvitinh = dv.madonvitinh
-           LEFT JOIN (
-            SELECT ctg.malo, ctg.dongia AS gianhapgannhat
-            FROM chitietdonhang ctg
-            JOIN donhang dhg ON ctg.madonhang = dhg.madonhang
-            JOIN (
-              SELECT ct2.malo, MAX(dh2.ngaytao) AS maxngay
-              FROM chitietdonhang ct2
-              JOIN donhang dh2 ON ct2.madonhang = dh2.madonhang
-              WHERE dh2.loaidonhang = 'nhap'
-              GROUP BY ct2.malo
-            ) latest ON latest.malo = ctg.malo AND dhg.ngaytao = latest.maxngay
-            WHERE dhg.loaidonhang = 'nhap'
-           ) gia ON gia.malo = ct.malo
-           WHERE dh.loaidonhang = 'xuat'
-             AND dh.trangthai IN ('daduyet', 'hoanthanh')
-             AND dh.ngaytao BETWEEN ? AND ?`,
-          [tuNgay, denNgay]
-        );
+        if (madoitac) {
+            filterSql += ` AND dh.madoitac = ?`;
+            params.push(madoitac);
+        }
+        if (mathuoc) {
+            filterSql += ` AND ct.mathuoc = ?`;
+            params.push(mathuoc);
+        }
 
-        const doanhthu = Number(doanhThuRows[0]?.doanhthu || 0);
-        const sodonhang = Number(doanhThuRows[0]?.sodonhang || 0);
-        const tongvon = Number(vonRows[0]?.tongvon || 0);
+        const sql = `
+            SELECT SUM(CASE WHEN loaidonhang = 'xuat' THEN giatri ELSE 0 END) AS doanhthu,
+                   SUM(CASE WHEN loaidonhang = 'nhap' THEN giatri ELSE 0 END) AS tongvon,
+                   COUNT(DISTINCT CASE WHEN loaidonhang = 'xuat' THEN madonhang END) AS sodonhang
+            FROM (
+                SELECT dh.madonhang, dh.loaidonhang, ${mathuoc ? 'ct.soluongthucte * ct.dongia' : 'dh.tonggiatri'} AS giatri
+                FROM donhang dh
+                ${mathuoc ? 'JOIN chitietdonhang ct ON dh.madonhang = ct.madonhang' : ''}
+                WHERE dh.trangthai IN ('daduyet', 'hoanthanh') 
+                  AND dh.ngaytao BETWEEN ? AND ?
+                  ${filterSql}
+            ) raw
+        `;
+
+        const [rows] = await db.query(sql, params);
+        
+        const doanhthu = Number(rows[0]?.doanhthu || 0);
+        const tongvon = Number(rows[0]?.tongvon || 0);
+        const sodonhang = Number(rows[0]?.sodonhang || 0);
         const loinhuan = doanhthu - tongvon;
 
         return { doanhthu, tongvon, loinhuan, sodonhang };
     },
 
-    getBieuDo: async (tuNgay, denNgay) => {
-        const sql = `SELECT d.ngay, d.doanhthu,
-                            (d.doanhthu - IFNULL(c.tongvon, 0)) AS loinhuan
-                     FROM (
-                         SELECT DATE(ngaytao) AS ngay, SUM(tonggiatri) AS doanhthu
-                         FROM donhang
-                         WHERE loaidonhang = 'xuat'
-                           AND trangthai IN ('daduyet', 'hoanthanh')
-                           AND ngaytao BETWEEN ? AND ?
-                         GROUP BY DATE(ngaytao)
-                     ) d
-                     LEFT JOIN (
-                         SELECT DATE(dh.ngaytao) AS ngay,
-                                SUM(ct.soluongthucte * COALESCE(dv.hesoquydoi, 1) * COALESCE(gia.gianhapgannhat, 0)) AS tongvon
-                         FROM donhang dh
-                         JOIN chitietdonhang ct ON dh.madonhang = ct.madonhang
-                         LEFT JOIN donvitinh dv ON ct.madonvitinh = dv.madonvitinh
-                         LEFT JOIN (
-                            SELECT ctg.malo, ctg.dongia AS gianhapgannhat
-                            FROM chitietdonhang ctg
-                            JOIN donhang dhg ON ctg.madonhang = dhg.madonhang
-                            JOIN (
-                                SELECT ct2.malo, MAX(dh2.ngaytao) AS maxngay
-                                FROM chitietdonhang ct2
-                                JOIN donhang dh2 ON ct2.madonhang = dh2.madonhang
-                                WHERE dh2.loaidonhang = 'nhap'
-                                GROUP BY ct2.malo
-                            ) latest ON latest.malo = ctg.malo AND dhg.ngaytao = latest.maxngay
-                            WHERE dhg.loaidonhang = 'nhap'
-                         ) gia ON gia.malo = ct.malo
-                         WHERE dh.loaidonhang = 'xuat'
-                           AND dh.trangthai IN ('daduyet', 'hoanthanh')
-                           AND dh.ngaytao BETWEEN ? AND ?
-                         GROUP BY DATE(dh.ngaytao)
-                     ) c ON d.ngay = c.ngay
-                     ORDER BY d.ngay ASC`;
+    getBieuDo: async (tuNgay, denNgay, madoitac = null, mathuoc = null) => {
+        let params = [tuNgay, denNgay];
+        let filterSql = "";
 
-        const [rows] = await db.query(sql, [tuNgay, denNgay, tuNgay, denNgay]);
+        if (madoitac) {
+            filterSql += ` AND dh.madoitac = ?`;
+            params.push(madoitac);
+        }
+        if (mathuoc) {
+            filterSql += ` AND ct.mathuoc = ?`;
+            params.push(mathuoc);
+        }
+
+        const sql = `
+            SELECT DATE(ngaytao) as ngay,
+                   SUM(CASE WHEN loaidonhang = 'xuat' THEN giatri ELSE 0 END) AS doanhthu,
+                   SUM(CASE WHEN loaidonhang = 'nhap' THEN giatri ELSE 0 END) AS tongvon,
+                   SUM(CASE WHEN loaidonhang = 'xuat' THEN giatri ELSE 0 END) - SUM(CASE WHEN loaidonhang = 'nhap' THEN giatri ELSE 0 END) AS loinhuan
+            FROM (
+                SELECT dh.ngaytao, dh.loaidonhang, ${mathuoc ? 'ct.soluongthucte * ct.dongia' : 'dh.tonggiatri'} AS giatri
+                FROM donhang dh
+                ${mathuoc ? 'JOIN chitietdonhang ct ON dh.madonhang = ct.madonhang' : ''}
+                WHERE dh.trangthai IN ('daduyet', 'hoanthanh') 
+                  AND dh.ngaytao BETWEEN ? AND ?
+                  ${filterSql}
+            ) raw
+            GROUP BY DATE(ngaytao)
+            ORDER BY DATE(ngaytao) ASC
+        `;
+
+        const [rows] = await db.query(sql, params);
         return rows;
     },
 
-    getTopThuoc: async (tuNgay, denNgay, limit = 5) => {
-        const sql = `SELECT ct.mathuoc, t.tenthuoc,
-                            SUM(ct.soluongthucte * COALESCE(dv.hesoquydoi, 1)) AS tongsoluong,
-                            SUM(ct.soluongthucte * ct.dongia) AS doanhthu
-                     FROM donhang dh
-                     JOIN chitietdonhang ct ON dh.madonhang = ct.madonhang
-                     LEFT JOIN donvitinh dv ON ct.madonvitinh = dv.madonvitinh
-                     LEFT JOIN thuoc t ON ct.mathuoc = t.mathuoc
-                     WHERE dh.loaidonhang = 'xuat'
-                       AND dh.trangthai IN ('daduyet', 'hoanthanh')
-                       AND dh.ngaytao BETWEEN ? AND ?
-                     GROUP BY ct.mathuoc, t.tenthuoc
-                     ORDER BY doanhthu DESC
-                     LIMIT ?`;
+    getChiTiet: async (tuNgay, denNgay, madoitac = null, mathuoc = null) => {
+        let params = [tuNgay, denNgay];
+        let filterSql = "";
 
-        const [rows] = await db.query(sql, [tuNgay, denNgay, limit]);
+        if (madoitac) {
+            filterSql += ` AND dh.madoitac = ?`;
+            params.push(madoitac);
+        }
+        if (mathuoc) {
+            filterSql += ` AND ct.mathuoc = ?`;
+            params.push(mathuoc);
+        }
+
+        const sql = `
+            SELECT dh.madonhang, dh.ngaytao, dh.loaidonhang, dt.tendoitac, dh.trangthai,
+                   ${mathuoc ? 'ct.soluongthucte * ct.dongia' : 'dh.tonggiatri'} AS giatri
+            FROM donhang dh
+            LEFT JOIN doitac dt ON dh.madoitac = dt.madoitac
+            ${mathuoc ? 'JOIN chitietdonhang ct ON dh.madonhang = ct.madonhang' : ''}
+            WHERE dh.trangthai IN ('daduyet', 'hoanthanh') 
+              AND dh.ngaytao BETWEEN ? AND ?
+              ${filterSql}
+            ORDER BY dh.ngaytao DESC
+            LIMIT 50
+        `;
+
+        const [rows] = await db.query(sql, params);
         return rows;
     }
 };

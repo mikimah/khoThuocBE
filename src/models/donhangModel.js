@@ -22,7 +22,7 @@ const donhangModel = {
     },
 
     getPublicByTrackingOrPhone: async (mavandon3pl, sodienthoai) => {
-        const sql = `SELECT dh.madonhang, dh.mavandon3pl, dh.tonggiatri, dh.trangthai, dh.ngaytao,
+        const sql = `SELECT dh.madonhang, dh.mavandon3pl, dh.tonggiatri, dh.tiendathanhtoan, dh.trangthai, dh.ngaytao,
                             dt.tendoitac, dt.sodienthoai, dt.diachi
                      FROM donhang dh
                      JOIN doitac dt ON dh.madoitac = dt.madoitac

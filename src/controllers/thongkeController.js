@@ -33,7 +33,8 @@ const thongkeController = {
             const range = getDateRange(req);
             if (range.error) return response.badRequest(res, range.error);
 
-            const data = await thongkeModel.getTongQuan(range.tuNgay, range.denNgay);
+            const { madoitac, mathuoc } = req.query || {};
+            const data = await thongkeModel.getTongQuan(range.tuNgay, range.denNgay, madoitac, mathuoc);
             return response.ok(res, data, 'Lấy thống kê tổng quan thành công');
         } catch (error) {
             return next(error);
@@ -45,21 +46,22 @@ const thongkeController = {
             const range = getDateRange(req);
             if (range.error) return response.badRequest(res, range.error);
 
-            const data = await thongkeModel.getBieuDo(range.tuNgay, range.denNgay);
+            const { madoitac, mathuoc } = req.query || {};
+            const data = await thongkeModel.getBieuDo(range.tuNgay, range.denNgay, madoitac, mathuoc);
             return response.ok(res, data, 'Lấy dữ liệu biểu đồ thành công');
         } catch (error) {
             return next(error);
         }
     },
 
-    getTopThuoc: async (req, res, next) => {
+    getChiTiet: async (req, res, next) => {
         try {
             const range = getDateRange(req);
             if (range.error) return response.badRequest(res, range.error);
 
-            const top = Math.min(Math.max(Number(req.query.top) || 5, 1), 20);
-            const data = await thongkeModel.getTopThuoc(range.tuNgay, range.denNgay, top);
-            return response.ok(res, data, 'Lấy top thuốc bán chạy thành công');
+            const { madoitac, mathuoc } = req.query || {};
+            const data = await thongkeModel.getChiTiet(range.tuNgay, range.denNgay, madoitac, mathuoc);
+            return response.ok(res, data, 'Lấy dữ liệu chi tiết giao dịch thành công');
         } catch (error) {
             return next(error);
         }

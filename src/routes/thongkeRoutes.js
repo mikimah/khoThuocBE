@@ -7,6 +7,6 @@ router.use('/thongke', auth.verifyToken);
 
 router.get('/thongke/tongquan', auth.allowRoles('admin'), thongkeController.getTongQuan);
 router.get('/thongke/bieudo', auth.allowRoles('admin'), thongkeController.getBieuDo);
-router.get('/thongke/top-thuoc', auth.allowRoles('admin'), thongkeController.getTopThuoc);
+router.get('/thongke/chitiet', auth.allowRoles('admin'), thongkeController.getChiTiet);
 
 module.exports = router;

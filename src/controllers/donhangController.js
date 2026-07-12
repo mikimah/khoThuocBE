@@ -73,7 +73,6 @@ const donhangController = {
     },
 
     // Tra cứu đơn hàng công khai
-   // Tra cứu đơn hàng công khai
     traCuuCongKhai: async (req, res, next) => {
         try {
             const {  mavandon3pl } = req.body || {};
@@ -81,18 +80,29 @@ const donhangController = {
                 return response.badRequest(res, 'Thiếu mã vận đơn');
             }
 
-            const masterRows = await donhangModel.getPublicByTrackingOrPhone(mavandon3pl);
+            // Bỏ tìm theo SĐT
+            const masterRows = await donhangModel.getPublicByTrackingOrPhone(mavandon3pl, null);
             if (masterRows.length === 0) {
-                return response.notFound(res, 'Không tìm thấy đơn hàng hoặc số điện thoại/mã vận đơn không chính xác');
+                return response.notFound(res, 'Không tìm thấy mã vận đơn này!');
             }
 
-            // ĐÃ SỬA: Lấy mã đơn hàng từ kết quả truy vấn masterRows ở trên
-            const madonhang_tim_thay = masterRows[0].madonhang;
+            const order = masterRows[0];
+            const madonhang_tim_thay = order.madonhang;
+
+            // Masking tên đối tác (Ví dụ: "Nhà thuốc A" -> "N** t**** A")
+            if (order.tendoitac) {
+                const words = order.tendoitac.split(' ');
+                order.tendoitac = words.map(w => w.length > 1 ? w[0] + '*'.repeat(w.length - 1) : w).join(' ');
+            }
+            
+            // Xóa SĐT và địa chỉ khỏi response để bảo mật
+            delete order.sodienthoai;
+            delete order.diachi;
 
             // Dùng mã tìm được để kéo danh sách chi tiết
             const chitiet = await donhangModel.getPublicDetails(madonhang_tim_thay);
             
-            return response.ok(res, { ...masterRows[0], chitiet }, 'Tra cứu đơn hàng thành công');
+            return response.ok(res, { ...order, chitiet }, 'Tra cứu đơn hàng thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
         }

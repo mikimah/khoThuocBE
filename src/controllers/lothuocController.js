@@ -53,14 +53,18 @@ const LoThuocController = {
       if (vitriRows.length === 0)
         return response.notFound(res, "Không tìm thấy vị trí kệ kho đã chọn");
 
-      const loaiBaoQuanThuoc = thuocRows[0].loai_baoquan;
-      const loaiBaoQuanViTri = vitriRows[0].loai_baoquan;
+      const loaiBaoQuanThuoc = String(thuocRows[0].loai_baoquan || "").trim().toLowerCase();
+      const loaiBaoQuanViTri = String(vitriRows[0].loai_baoquan || "").trim().toLowerCase();
 
-      // 🔥 THUẬT TOÁN KIỂM TRA GDP KHỚP MÃ TOÀN VẸN
-      if (loaiBaoQuanThuoc !== loaiBaoQuanViTri) {
+      // Khu vực biệt trữ (quarantine) được phép tiếp nhận mọi loại thuốc bất chấp GDP
+      const isBietTru = loaiBaoQuanViTri === "biệt trữ" || loaiBaoQuanViTri === "biettru";
+
+      if (isBietTru) {
+        req.body.trangthai = "biettru";
+      } else if (loaiBaoQuanThuoc !== loaiBaoQuanViTri) {
         return response.badRequest(
           res,
-          `Vi phạm tiêu chuẩn GDP: Thuốc yêu cầu bảo quản dạng [${loaiBaoQuanThuoc}], không thể xếp vào vị trí thuộc khu vực [${loaiBaoQuanViTri}]!`,
+          `Vi phạm tiêu chuẩn GDP: Thuốc yêu cầu bảo quản dạng [${thuocRows[0].loai_baoquan}], không thể xếp vào vị trí thuộc khu vực [${vitriRows[0].loai_baoquan}]!`,
         );
       }
 
@@ -81,14 +85,32 @@ const LoThuocController = {
   updateLoThuoc: async (req, res, next) => {
     try {
       const { malo } = req.params;
-      const { mavitri, mathuoc } = req.body;
+      const { mavitri, mathuoc, trangthai } = req.body;
 
-      // Nếu có sự thay đổi vị trí kệ khi đang vận hành kho, phải kiểm tra lại GDP chéo
+      const current = await LoThuocModel.getById(malo);
+      if (current.length === 0)
+        return response.notFound(res, "Không tìm thấy mã lô");
+
+      const currentViTri = current[0].mavitri;
+
       if (mavitri && mathuoc) {
         const thuocRows = await ThuocModel.getById(mathuoc);
         const vitriRows = await vitrikhoModel.getById(mavitri);
         if (thuocRows.length > 0 && vitriRows.length > 0) {
-          if (thuocRows[0].loai_baoquan !== vitriRows[0].loai_baoquan) {
+          const loaiBaoQuanThuoc = String(thuocRows[0].loai_baoquan || "").trim().toLowerCase();
+          const loaiBaoQuanViTri = String(vitriRows[0].loai_baoquan || "").trim().toLowerCase();
+          const isBietTru = loaiBaoQuanViTri === "biệt trữ" || loaiBaoQuanViTri === "biettru";
+
+          if (isBietTru) {
+            // Chặn lỗi: Đang ở Biệt trữ mà đòi chuyển trạng thái sang Sẵn sàng bán nhưng không dời đi kệ khác
+            if (mavitri === currentViTri && trangthai === "sansangban") {
+              return response.badRequest(
+                res,
+                "Không thể chuyển trạng thái sang Sẵn sàng bán khi lô thuốc vẫn đang nằm trên kệ Biệt trữ!",
+              );
+            }
+            req.body.trangthai = "biettru";
+          } else if (loaiBaoQuanThuoc !== loaiBaoQuanViTri) {
             return response.badRequest(
               res,
               "Không thể điều chuyển lô thuốc sang kệ này vì lệch chuẩn bảo quản GDP!",
@@ -101,9 +123,6 @@ const LoThuocController = {
         req.body &&
         (req.body.tonkhadung != null || req.body.tonthucte != null)
       ) {
-        const current = await LoThuocModel.getById(malo);
-        if (current.length === 0)
-          return response.notFound(res, "Không tìm thấy mã lô");
         const tonthucte = Number(
           req.body.tonthucte != null
             ? req.body.tonthucte

@@ -67,12 +67,12 @@ const donhangModel = {
     },
 
     create: async (data) => {
-        const { madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl, tonggiatri, tienchietkhau, tiendathanhtoan } = data;
-        const sql = `INSERT INTO donhang (madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl, trangthai, tonggiatri, tienchietkhau, tiendathanhtoan) 
-                     VALUES (?, ?, ?, ?, ?, 'choduyet', ?, ?, ?)`;
+        const { madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl, tonggiatri, tienchietkhau, tiendathanhtoan, ghi_chu } = data;
+        const sql = `INSERT INTO donhang (madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl, trangthai, tonggiatri, tienchietkhau, tiendathanhtoan, ghi_chu) 
+                     VALUES (?, ?, ?, ?, ?, 'choduyet', ?, ?, ?, ?)`;
         const [result] = await db.query(sql, [
             madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl,
-            tonggiatri || 0, tienchietkhau || 0, tiendathanhtoan || 0
+            tonggiatri || 0, tienchietkhau || 0, tiendathanhtoan || 0, ghi_chu || ''
         ]);
         return result;
     },
@@ -209,6 +209,15 @@ const donhangModel = {
                             ]
                         );
                     }
+                }
+
+                // Cập nhật công nợ Nhà cung cấp
+                const congNoPhaiTraThem = Number(donHang.tonggiatri || 0) - Number(donHang.tiendathanhtoan || 0);
+                if (congNoPhaiTraThem > 0) {
+                    await connection.query(
+                        `UPDATE doitac SET tongnohientai = tongnohientai + ? WHERE madoitac = ?`,
+                        [congNoPhaiTraThem, donHang.madoitac]
+                    );
                 }
             }
 

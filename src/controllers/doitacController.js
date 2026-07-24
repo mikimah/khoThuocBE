@@ -1,5 +1,6 @@
 const DoiTacModel = require('../models/doitacModel');
 const response = require('../utils/response');
+const redisFunc = require('../utils/redisFunc');
 
 const attachHttpMeta = (error) => {
     if (error && error.code === 'ER_DUP_ENTRY') {
@@ -9,11 +10,18 @@ const attachHttpMeta = (error) => {
     return error;
 };
 
+const cacheKey = 'doitac';
+
 const DoiTacController = {
     // Lấy tất cả
     getAllDoiTac: async (req, res, next) => {
         try {
+            const cacheData = await redisFunc.getFromCache(cacheKey);
+            if (cacheData) {
+                return response.ok(res, cacheData, 'Lấy danh sách đối tác thành công (từ cache)');
+            }
             const data = await DoiTacModel.getAll();
+            await redisFunc.addToCache(cacheKey, data);
             return response.ok(res, data, 'Lấy danh sách đối tác thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -77,6 +85,7 @@ const DoiTacController = {
                 return response.conflict(res, 'Số điện thoại hoặc email đã tồn tại');
             }
             const result = await DoiTacModel.create(req.body);
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi tạo mới
             return response.created(res, { id_moi: result.insertId }, 'Thêm đối tác thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -112,6 +121,7 @@ const DoiTacController = {
             }
             const result = await DoiTacModel.update(id, req.body);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy đối tác');
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
             return response.ok(res, null, 'Cập nhật thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -129,6 +139,7 @@ const DoiTacController = {
             }
             const result = await DoiTacModel.delete(id);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy đối tác');
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi xóa
             return response.ok(res, null, 'Xóa thành công');
         } catch (error) {
             return next(attachHttpMeta(error));

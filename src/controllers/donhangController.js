@@ -1,5 +1,8 @@
 const donhangModel = require('../models/donhangModel');
 const response = require('../utils/response');
+const redisFunc = require('../utils/redisFunc');
+
+const cacheKey = 'donhang';
 
 const attachHttpMeta = (error) => {
     if (error && error.code === 'ER_DUP_ENTRY') {
@@ -13,7 +16,12 @@ const donhangController = {
     // Lấy tất cả
     getAllDonHang: async (req, res, next) => {
         try {
+            const cacheData = await redisFunc.getFromCache(cacheKey);
+            if (cacheData) {
+                return response.ok(res, cacheData, 'Lấy danh sách đơn hàng thành công (từ cache)');
+            }
             const data = await donhangModel.getAll();
+            await redisFunc.addToCache(cacheKey, data);
             return response.ok(res, data, 'Lấy danh sách đơn hàng thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -66,6 +74,7 @@ const donhangController = {
                 }
             }
             const result = await donhangModel.create(req.body);
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi tạo mới
             return response.created(res, { madonhang_moi: result.insertId }, 'Tạo đơn hàng thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -118,7 +127,7 @@ const donhangController = {
 
             const result = await donhangModel.updateStatusWithBusinessLogic(id, trangthai);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy đơn hàng');
-            
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
             return response.ok(res, null, `Đã chuyển trạng thái thành: ${trangthai}`);
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -131,6 +140,7 @@ const donhangController = {
             const { id } = req.params;
             const result = await donhangModel.update(id, req.body);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy đơn hàng');
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
             return response.ok(res, null, 'Cập nhật thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -143,6 +153,7 @@ const donhangController = {
             const { id } = req.params;
             const result = await donhangModel.delete(id);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy đơn hàng');
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi xóa
             return response.ok(res, null, 'Xóa thành công');
         } catch (error) {
             return next(attachHttpMeta(error));

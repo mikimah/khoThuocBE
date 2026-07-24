@@ -2,6 +2,7 @@ const taikhoanModel = require('../models/taikhoanModel');
 const bcrypt = require('bcrypt');
 const response = require('../utils/response');
 const jwt = require('jsonwebtoken');
+const redisFunc = require('../utils/redisFunc');
 
 const attachHttpMeta = (error) => {
     if (error && error.code === 'ER_DUP_ENTRY') {
@@ -10,6 +11,8 @@ const attachHttpMeta = (error) => {
     }
     return error;
 };
+
+const cacheKey = 'taikhoan'
 
 const taikhoanController = {
     // 1. API Đăng nhập (Xử lý thông minh cả pass thô lẫn pass đã Hash)
@@ -105,7 +108,12 @@ const taikhoanController = {
     // 3. API Lấy danh sách tài khoản
     getAll: async (req, res, next) => {
         try {
+            const cacheData = await redisFunc.getFromCache(cacheKey);
+            if (cacheData) {
+                return response.ok(res, cacheData, 'Lấy danh sách tài khoản thành công');
+            }
             const data = await taikhoanModel.getAll();
+            await redisFunc.addToCache(cacheKey, data);
             return response.ok(res, data, 'Lấy danh sách tài khoản thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -141,6 +149,7 @@ const taikhoanController = {
             };
 
             const result = await taikhoanModel.create(dataToSave);
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi tạo mới
             return response.created(res, { id_moi: result.insertId }, 'Tạo tài khoản thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -165,6 +174,7 @@ const taikhoanController = {
 
             const result = await taikhoanModel.update(id, { matkhau, vaitro });
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy tài khoản');
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
             return response.ok(res, null, 'Cập nhật tài khoản thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -182,6 +192,7 @@ const taikhoanController = {
             }
             const result = await taikhoanModel.delete(id);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy tài khoản');
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi xóa
             return response.ok(res, null, 'Xóa tài khoản thành công');
         } catch (error) {
             return next(attachHttpMeta(error));

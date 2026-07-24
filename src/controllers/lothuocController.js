@@ -2,6 +2,9 @@ const LoThuocModel = require("../models/lothuocModel");
 const ThuocModel = require("../models/thuocModel");
 const vitrikhoModel = require("../models/vitrikhoModel");
 const response = require("../utils/response");
+const redisFunc = require('../utils/redisFunc');
+
+const cacheKey = 'lothuoc';
 
 const attachHttpMeta = (error) => {
   if (error && error.code === "ER_DUP_ENTRY") {
@@ -14,7 +17,12 @@ const attachHttpMeta = (error) => {
 const LoThuocController = {
   getAllLoThuoc: async (req, res, next) => {
     try {
+      const cacheData = await redisFunc.getFromCache(cacheKey);
+      if (cacheData) {
+        return response.ok(res, cacheData, "Lấy danh sách lô thuốc thành công (từ cache)");
+      }
       const data = await LoThuocModel.getAll();
+      await redisFunc.addToCache(cacheKey, data);
       return response.ok(res, data, "Lấy danh sách lô thuốc thành công");
     } catch (error) {
       return next(attachHttpMeta(error));
@@ -72,6 +80,7 @@ const LoThuocController = {
       req.body.tonkhadung = tonthucte;
 
       const result = await LoThuocModel.create(req.body);
+      await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi tạo mới
       return response.created(
         res,
         { malo_moi: result.insertId },
@@ -145,6 +154,8 @@ const LoThuocController = {
       const result = await LoThuocModel.update(malo, req.body);
       if (result.affectedRows === 0)
         return response.notFound(res, "Không tìm thấy lô thuốc cần cập nhật");
+
+      await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
       return response.ok(res, null, "Cập nhật thông tin lô thuốc thành công");
     } catch (error) {
       return next(attachHttpMeta(error));
@@ -157,6 +168,8 @@ const LoThuocController = {
       const result = await LoThuocModel.delete(malo);
       if (result.affectedRows === 0)
         return response.notFound(res, "Không tìm thấy lô thuốc để xóa");
+
+      await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi xóa
       return response.ok(res, null, "Xóa lô thuốc ra khỏi hệ thống thành công");
     } catch (error) {
       return next(attachHttpMeta(error));

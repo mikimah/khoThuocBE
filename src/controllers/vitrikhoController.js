@@ -1,5 +1,8 @@
 const vitrikhoModel = require('../models/vitrikhoModel');
 const response = require('../utils/response');
+const redisFunc = require('../utils/redisFunc');
+
+const cacheKey = 'vitrikho';
 
 const attachHttpMeta = (error) => {
     if (error && error.code === 'ER_DUP_ENTRY') {
@@ -12,7 +15,12 @@ const attachHttpMeta = (error) => {
 const vitrikhoController = {
     getAll: async (req, res, next) => {
         try {
+            const cacheData = await redisFunc.getFromCache(cacheKey);
+            if (cacheData) {
+                return response.ok(res, cacheData, 'Lấy danh sách vị trí kho thành công (từ cache)');
+            }
             const data = await vitrikhoModel.getAll();
+            await redisFunc.addToCache(cacheKey, data);
             return response.ok(res, data, 'Lấy danh sách vị trí kho thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -38,6 +46,7 @@ const vitrikhoController = {
             }
 
             const result = await vitrikhoModel.create(req.body);
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi tạo mới
             return response.created(res, { mavitri: result.insertId }, 'Thêm vị trí kho mới thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -53,6 +62,7 @@ const vitrikhoController = {
 
             const result = await vitrikhoModel.update(req.params.id, req.body);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy vị trí kho');
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
             return response.ok(res, null, 'Cập nhật thông tin vị trí kho thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -63,6 +73,7 @@ const vitrikhoController = {
         try {
             const result = await vitrikhoModel.delete(req.params.id);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy vị trí kho để xóa');
+            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi xóa
             return response.ok(res, null, 'Xóa vị trí kho thành công');
         } catch (error) {
             return next(attachHttpMeta(error));

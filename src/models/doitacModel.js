@@ -49,6 +49,18 @@ const DoiTacModel = {
         return rows;
     },
 
+    getSoLanGiaoDichThanhCong: async (id) => {
+        const sql = `SELECT solangiaodich_thanhcong FROM doitac WHERE madoitac = ?`;
+        const [rows] = await db.query(sql, [id]);
+        return rows;
+    },
+
+    updateLanGiaoDichThanhCong: async (id, solangiaodich_thanhcong) => {
+        const sql = `UPDATE doitac SET solangiaodich_thanhcong = ? WHERE madoitac = ?`;
+        const [result] = await db.query(sql, [solangiaodich_thanhcong, id]);
+        return result;
+    },
+
     // 4. Thêm mới đối tác
     create: async (data) => {
         const { tendoitac, masothue, loaidoitac, diachi, sodienthoai, email, hanmucno, tongnohientai, trangthai, solangiaodich_thanhcong } = data;

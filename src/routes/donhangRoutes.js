@@ -24,4 +24,5 @@ router.put('/donhang/:id/trangthai', auth.allowRoles('admin'), donhangController
 router.put('/donhang/:id', auth.allowRoles('admin', 'kho', 'sales'), donhangController.updateDonHang);
 router.delete('/donhang/:id', auth.allowRoles('admin'), donhangController.deleteDonHang);
 
+
 module.exports = router;

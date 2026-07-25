@@ -66,6 +66,15 @@ const donhangModel = {
         return rows;
     },
 
+    getDoiTacByMaDH: async (madonhang) => {
+        const sql = `SELECT tk.madoitac
+                     FROM donhang dh 
+                     LEFT JOIN doitac tk ON dh.madoitac = tk.madoitac
+                     WHERE dh.madonhang = ?`;
+        const [rows] = await db.query(sql, [madonhang]);
+        return rows;
+    },
+
     create: async (data) => {
         const { madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl, tonggiatri, tienchietkhau, tiendathanhtoan, ghi_chu } = data;
         const sql = `INSERT INTO donhang (madoitac, mataikhoan, loaidonhang, sohoadongtgt, mavandon3pl, trangthai, tonggiatri, tienchietkhau, tiendathanhtoan, ghi_chu) 

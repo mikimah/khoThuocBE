@@ -3,6 +3,8 @@ const response = require('../utils/response');
 const redisFunc = require('../utils/redisFunc');
 
 const cacheKey = 'phieukiemke';
+const cacheKey2 = 'lothuoc';
+const cacheKey3 = 'donhang';
 
 const attachHttpMeta = (error) => {
     if (error && error.code === 'ER_DUP_ENTRY') {
@@ -51,6 +53,8 @@ const phieukiemkeController = {
             const result = await phieukiemkeModel.updateTrangThai(req.params.maphieu, req.body.trangthai);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy phiếu');
             await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
+            await redisFunc.deleteCache(cacheKey2); // Xóa cache lô thuốc
+            await redisFunc.deleteCache(cacheKey3); // Xóa cache đơn hàng
             return response.ok(res, null, 'Cập nhật trạng thái thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -61,6 +65,8 @@ const phieukiemkeController = {
             const result = await phieukiemkeModel.delete(req.params.maphieu);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy phiếu');
             await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi xóa
+            await redisFunc.deleteCache(cacheKey2); // Xóa cache lô thuốc
+            await redisFunc.deleteCache(cacheKey3); // Xóa cache đơn hàng
             return response.ok(res, null, 'Xóa thành công');
         } catch (error) {
             return next(attachHttpMeta(error));

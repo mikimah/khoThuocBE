@@ -5,14 +5,15 @@ const client = Redis.createClient({
 });
 
 
-client.on("error", (err) => console.error("❌ [REDIS] Lỗi kết nối:", err));
+client.on("error", (err) => console.error("[REDIS] Lỗi kết nối:", err));
 
 // Kích hoạt kết nối tự động bất đồng bộ
 (async () => {
   try {
     await client.connect();
+    console.log("[REDIS] Kết nối Redis thành công");
   } catch (error) {
-    console.error("❌ Không thể kết nối Redis khi khởi động:", error);
+    console.error("[REDIS] Không thể kết nối Redis khi khởi động:", error);
   }
 })();
 

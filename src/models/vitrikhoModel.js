@@ -14,6 +14,19 @@ const vitrikhoModel = {
         return rows;
     },
 
+    checkDuplicate: async (ma_toado, excludeId = null) => {
+        let sql = 'SELECT mavitri FROM vitrikho WHERE ma_toado = ?';
+        const params = [ma_toado];
+        
+        if (excludeId) {
+            sql += ' AND mavitri != ?';
+            params.push(excludeId);
+        }
+        
+        const [rows] = await db.query(sql, params);
+        return rows.length > 0;
+    },
+
     create: async (data) => {
         const { ma_toado, ten_vitri, loai_baoquan } = data;
         const sql = `INSERT INTO vitrikho (ma_toado, ten_vitri, loai_baoquan) VALUES (?, ?, ?)`;

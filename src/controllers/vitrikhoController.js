@@ -37,6 +37,11 @@ const vitrikhoController = {
                 return response.badRequest(res, 'Thiếu dữ liệu bắt buộc: ma_toado và ten_vitri không được để trống');
             }
 
+            const isExist = await vitrikhoModel.checkDuplicate(ma_toado);
+            if (isExist) {
+                return response.conflict(res, `Mã tọa độ vị trí '${ma_toado}' đã tồn tại! Vui lòng chọn mã khác.`);
+            }
+
             const result = await vitrikhoModel.create(req.body);
             return response.created(res, { mavitri: result.insertId }, 'Thêm vị trí kho mới thành công');
         } catch (error) {
@@ -49,6 +54,11 @@ const vitrikhoController = {
             const { ma_toado, ten_vitri, loai_baoquan } = req.body;
             if (!ma_toado || !ten_vitri || !loai_baoquan) {
                 return response.badRequest(res, 'Thiếu dữ liệu cập nhật: ma_toado, ten_vitri, loai_baoquan');
+            }
+
+            const isExist = await vitrikhoModel.checkDuplicate(ma_toado, req.params.id);
+            if (isExist) {
+                return response.conflict(res, `Mã tọa độ vị trí '${ma_toado}' đã tồn tại! Vui lòng chọn mã khác.`);
             }
 
             const result = await vitrikhoModel.update(req.params.id, req.body);

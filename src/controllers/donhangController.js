@@ -91,6 +91,7 @@ const donhangController = {
       }
       const result = await donhangModel.create(req.body);
       await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi tạo mới
+      await redisFunc.deleteCache(cacheKey3); // Xóa cache lô thuốc
       return response.created(
         res,
         { madonhang_moi: result.insertId },

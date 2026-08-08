@@ -12,6 +12,7 @@ const vitrikhoRoutes = require('./routes/vitrikhoRoutes');
 const phieukiemkeRoutes = require('./routes/phieukiemkeRoutes');
 const chitietkiemkeRoutes = require('./routes/chitietkiemkeRoutes');
 const thongkeRoutes = require('./routes/thongkeRoutes');
+const tieuhuyRoutes = require('./routes/tieuhuyRoutes');
 const { notFoundHandler, errorHandler } = require('./middlewares/errorHandler');
 require('dotenv').config();
 
@@ -39,6 +40,7 @@ app.use('/api', vitrikhoRoutes);
 app.use('/api', phieukiemkeRoutes);
 app.use('/api', chitietkiemkeRoutes);
 app.use('/api', thongkeRoutes);
+app.use('/api/phieutieuhuy', tieuhuyRoutes);
 
 // 404 + Error handlers
 app.use(notFoundHandler);

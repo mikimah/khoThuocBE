@@ -80,7 +80,10 @@ const ThuocController = {
                 : await ThuocModel.update(id, updateData);
             if (result.affectedRows === 0) return response.notFound(res, 'Không tìm thấy thuốc để cập nhật');
 
-            await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
+            await redisFunc.deleteCache(cacheKey); // Xóa cache thuốc
+            if (shouldLockLo) {
+                await redisFunc.deleteCache('lothuoc'); // Xóa cache lô thuốc vì đã bị đổi trạng thái
+            }
             return response.ok(res, null, 'Cập nhật thành công');
         } catch (error) {
             return next(attachHttpMeta(error));

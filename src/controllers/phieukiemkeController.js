@@ -5,6 +5,7 @@ const redisFunc = require('../utils/redisFunc');
 const cacheKey = 'phieukiemke';
 const cacheKey2 = 'lothuoc';
 const cacheKey3 = 'donhang';
+const cacheKey4 = 'phieutieuhuy';
 
 const attachHttpMeta = (error) => {
     if (error && error.code === 'ER_DUP_ENTRY') {
@@ -55,6 +56,7 @@ const phieukiemkeController = {
             await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
             await redisFunc.deleteCache(cacheKey2); // Xóa cache lô thuốc
             await redisFunc.deleteCache(cacheKey3); // Xóa cache đơn hàng
+            await redisFunc.deleteCache(cacheKey4); // Xóa cache phiếu tiêu hủy
             return response.ok(res, null, 'Cập nhật trạng thái thành công');
         } catch (error) {
             return next(attachHttpMeta(error));
@@ -67,6 +69,7 @@ const phieukiemkeController = {
             await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi xóa
             await redisFunc.deleteCache(cacheKey2); // Xóa cache lô thuốc
             await redisFunc.deleteCache(cacheKey3); // Xóa cache đơn hàng
+            await redisFunc.deleteCache(cacheKey4); // Xóa cache phiếu tiêu hủy
             return response.ok(res, null, 'Xóa thành công');
         } catch (error) {
             return next(attachHttpMeta(error));

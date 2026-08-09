@@ -6,6 +6,7 @@ const redisFunc = require("../utils/redisFunc");
 const cacheKey = "donhang";
 const cacheKey2 = "doitac";
 const cacheKey3 = "lothuoc";
+const cacheKey4 = "phieutieuhuy";
 
 const attachHttpMeta = (error) => {
   if (error && error.code === "ER_DUP_ENTRY") {
@@ -92,6 +93,7 @@ const donhangController = {
       const result = await donhangModel.create(req.body);
       await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi tạo mới
       await redisFunc.deleteCache(cacheKey3); // Xóa cache lô thuốc
+      await redisFunc.deleteCache(cacheKey4); // Xóa cache phiếu tiêu hủy
       return response.created(
         res,
         { madonhang_moi: result.insertId },
@@ -179,6 +181,7 @@ const donhangController = {
       await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi cập nhật
       await redisFunc.deleteCache(cacheKey2); // Xóa cache đối tác
       await redisFunc.deleteCache(cacheKey3); // Xóa cache lô thuốc
+      await redisFunc.deleteCache(cacheKey4); // Xóa cache phiếu tiêu hủy
       return response.ok(res, null, `Đã chuyển trạng thái thành: ${trangthai}`);
     } catch (error) {
       return next(attachHttpMeta(error));

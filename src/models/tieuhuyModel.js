@@ -125,6 +125,11 @@ const TieuHuyModel = {
                             'UPDATE lothuoc SET tonthucte = tonthucte - ? WHERE malo = ?',
                             [row.soluongtieuhuy, row.malothuoc]
                         );
+                        // Safety Clamp: Đảm bảo tonkhadung không bao giờ vượt tonthucte
+                        await conn.query(
+                            'UPDATE lothuoc SET tonkhadung = LEAST(tonkhadung, tonthucte) WHERE malo = ? AND tonkhadung > tonthucte',
+                            [row.malothuoc]
+                        );
                     }
                 }
             } else if (trangthai === 'dahuy') {

@@ -17,6 +17,14 @@ const attachHttpMeta = (error) => {
 const LoThuocController = {
   getAllLoThuoc: async (req, res, next) => {
     try {
+      // Auto-fix: Kẹp tonkhadung không vượt tonthucte (chạy TRƯỚC cache)
+      const db = require('../configs/db');
+      const [fixResult] = await db.query(`UPDATE lothuoc SET tonkhadung = LEAST(tonkhadung, tonthucte) WHERE tonkhadung > tonthucte`);
+      // Nếu có dữ liệu bẩn vừa được sửa → xóa cache cũ để lấy data mới
+      if (fixResult.affectedRows > 0) {
+        await redisFunc.deleteCache(cacheKey);
+      }
+
       const cacheData = await redisFunc.getFromCache(cacheKey);
       if (cacheData) {
         return response.ok(res, cacheData, "Lấy danh sách lô thuốc thành công (từ cache)");

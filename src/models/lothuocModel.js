@@ -4,6 +4,8 @@ const LoThuocModel = {
     // 1. Lấy tất cả lô thuốc (kèm tên thuốc và giá nhập gần nhất)
     getAll: async () => {
         await db.query(`UPDATE lothuoc SET trangthai = 'khoalo' WHERE hansudung < CURDATE() AND trangthai != 'khoalo'`);
+        // Auto-fix: Kẹp tonkhadung không vượt tonthucte (sửa dữ liệu bẩn nếu có)
+        await db.query(`UPDATE lothuoc SET tonkhadung = LEAST(tonkhadung, tonthucte) WHERE tonkhadung > tonthucte`);
         const sql = `SELECT l.*, t.tenthuoc,
                         (SELECT ct.dongia FROM chitietdonhang ct
                          JOIN donhang dh ON ct.madonhang = dh.madonhang

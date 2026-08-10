@@ -130,6 +130,11 @@ const donhangModel = {
                         `UPDATE lothuoc SET tonthucte = tonthucte - ? WHERE malo = ?`,
                         [soLuongTruVatLy, item.malo]
                     );
+                    // Safety Clamp: Đảm bảo tonkhadung không bao giờ vượt tonthucte
+                    await connection.query(
+                        `UPDATE lothuoc SET tonkhadung = LEAST(tonkhadung, tonthucte) WHERE malo = ? AND tonkhadung > tonthucte`,
+                        [item.malo]
+                    );
                     
                 }
                 const congNoTangThem = Number(donHang.tonggiatri || 0) - Number(donHang.tiendathanhtoan || 0);

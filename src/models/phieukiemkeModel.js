@@ -39,6 +39,11 @@ const phieukiemkeModel = {
                         'UPDATE lothuoc SET tonthucte = tonthucte - ?, tonkhadung = tonkhadung - ? WHERE malo = ?',
                         [soLuongLech, soLuongLech, row.malo]
                     );
+                    // Safety Clamp: Chặn tonkhadung âm và không cho vượt tonthucte
+                    await conn.query(
+                        'UPDATE lothuoc SET tonkhadung = GREATEST(0, LEAST(tonkhadung, tonthucte)) WHERE malo = ?',
+                        [row.malo]
+                    );
 
                     // Auto-Spawn logic: Kiểm tra lý do để đưa vào phiếu tiêu hủy (chỉ áp dụng khi hao hụt > 0)
                     if (soLuongLech > 0 && row.lydo) {

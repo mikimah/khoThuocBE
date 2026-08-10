@@ -178,11 +178,26 @@ const LoThuocController = {
         return response.notFound(res, "Không tìm thấy lô thuốc để xóa");
 
       await redisFunc.deleteCache(cacheKey); // Xóa cache sau khi xóa
-      return response.ok(res, null, "Xóa lô thuốc ra khỏi hệ thống thành công");
+      return response.ok(res, null, "Xóa lô thuốc thành công");
     } catch (error) {
       return next(attachHttpMeta(error));
     }
   },
+
+  tachLo: async (req, res, next) => {
+    try {
+      const { malo } = req.params;
+      const { soluong_tach } = req.body;
+      if (!soluong_tach || isNaN(soluong_tach)) {
+         return response.badRequest(res, "Vui lòng nhập số lượng hợp lệ để tách");
+      }
+      await LoThuocModel.splitLo(malo, Number(soluong_tach));
+      await redisFunc.deleteCache(cacheKey);
+      return response.ok(res, null, "Tách lô thành công");
+    } catch (error) {
+      return next(attachHttpMeta(error));
+    }
+  }
 };
 
 module.exports = LoThuocController;

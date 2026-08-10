@@ -10,5 +10,6 @@ router.get('/lothuoc/thuoc/:mathuoc', auth.allowRoles('admin', 'kho', 'sales'), 
 router.post('/lothuoc', auth.allowRoles('admin', 'kho', 'sales'), LoThuocController.createLoThuoc);
 router.put('/lothuoc/:malo', auth.allowRoles('admin', 'kho','sales'), LoThuocController.updateLoThuoc);
 router.delete('/lothuoc/:malo', auth.allowRoles('admin'), LoThuocController.deleteLoThuoc);
+router.post('/lothuoc/:malo/tach', auth.allowRoles('admin', 'kho'), LoThuocController.tachLo);
 
 module.exports = router;

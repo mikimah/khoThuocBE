@@ -79,6 +79,47 @@ const LoThuocModel = {
         const sql = 'DELETE FROM lothuoc WHERE malo = ?';
         const [result] = await db.query(sql, [malo]);
         return result;
+    },
+
+    // 6. Tách lô (Split Lot)
+    splitLo: async (malo, soluong_tach) => {
+        const conn = await db.getConnection();
+        try {
+            await conn.beginTransaction();
+
+            // Lấy thông tin lô gốc
+            const [rows] = await conn.query('SELECT * FROM lothuoc WHERE malo = ? FOR UPDATE', [malo]);
+            if (rows.length === 0) throw new Error('Không tìm thấy lô gốc!');
+            const loGoc = rows[0];
+
+            if (soluong_tach <= 0) throw new Error('Số lượng tách phải lớn hơn 0');
+            if (soluong_tach > loGoc.tonkhadung) {
+                throw new Error('Số lượng tách không được lớn hơn Tồn khả dụng hiện tại!');
+            }
+
+            // Trừ số lượng ở lô gốc (tonthucte và tonkhadung đều trừ)
+            await conn.query(
+                'UPDATE lothuoc SET tonthucte = tonthucte - ?, tonkhadung = tonkhadung - ? WHERE malo = ?',
+                [soluong_tach, soluong_tach, malo]
+            );
+
+            // Chèn lô mới (kế thừa y nguyên nhưng mavitri = NULL, trangthai = 'biettru')
+            const insertSql = `INSERT INTO lothuoc 
+                               (solo, mathuoc, tonthucte, tonkhadung, hansudung, ngaysanxuat, ngaynhap, mavitri, trangthai) 
+                               VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'biettru')`;
+            await conn.query(insertSql, [
+                loGoc.solo, loGoc.mathuoc, soluong_tach, soluong_tach,
+                loGoc.hansudung, loGoc.ngaysanxuat, loGoc.ngaynhap
+            ]);
+
+            await conn.commit();
+            return { success: true };
+        } catch (error) {
+            await conn.rollback();
+            throw error;
+        } finally {
+            conn.release();
+        }
     }
 };
 
